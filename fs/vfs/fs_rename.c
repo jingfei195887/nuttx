@@ -72,6 +72,7 @@ static int pseudorename(FAR const char *oldpath, FAR struct inode *oldinode,
 {
   struct inode_search_s newdesc;
   FAR struct inode *newinode;
+  FAR struct inode *child;
   FAR char *subdir = NULL;
   bool isdir = INODE_IS_PSEUDODIR(oldinode);
   size_t oldlen;
@@ -255,6 +256,15 @@ static int pseudorename(FAR const char *oldpath, FAR struct inode *oldinode,
 
       inode_remove(newpath);
       goto errout_with_newsearch;
+    }
+
+  /* Children must not retain a parent that will be freed when the old
+   * directory's last reference is released.
+   */
+
+  for (child = newinode->i_child; child != NULL; child = child->i_peer)
+    {
+      child->i_parent = newinode;
     }
 
   /* Remove all of the children from the unlinked inode */
